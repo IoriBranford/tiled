@@ -35,6 +35,7 @@
 #include "objectgroup.h"
 
 #include <QtCore/qmath.h>
+#include <QLine>
 
 using namespace Tiled;
 
@@ -330,6 +331,59 @@ void OrthogonalRenderer::drawTileSelection(QPainter *painter,
     painter->drawPath(path.simplified());
 }
 
+void buildRectangleExtrusionShapes(QPolygonF & polygon,
+                                   QLineF & edge,
+                                   const QRectF & bounds,
+                                   const QPointF & extrusion)
+{
+    QPointF tl = bounds.topLeft();
+    QPointF tr = bounds.topRight();
+    QPointF bl = bounds.bottomLeft();
+    QPointF br = bounds.bottomRight();
+    QPointF xtl = tl + extrusion;
+    QPointF xtr = tr + extrusion;
+    QPointF xbl = bl + extrusion;
+    QPointF xbr = br + extrusion;
+
+    if (extrusion.y() < 0) {
+        if (extrusion.x() < 0) {
+            polygon += tr;
+            polygon += br;
+            polygon += bl;
+            polygon += xbl;
+            polygon += xtl;
+            polygon += xtr;
+            edge.setPoints(br, xbr);
+        } else {
+            polygon += tl;
+            polygon += bl;
+            polygon += br;
+            polygon += xbr;
+            polygon += xtr;
+            polygon += xtl;
+            edge.setPoints(bl, xbl);
+        }
+    } else {
+        if (extrusion.x() < 0) {
+            polygon += br;
+            polygon += tr;
+            polygon += tl;
+            polygon += xtl;
+            polygon += xbl;
+            polygon += xbr;
+            edge.setPoints(tr, xtr);
+        } else {
+            polygon += bl;
+            polygon += tl;
+            polygon += tr;
+            polygon += xtr;
+            polygon += xbr;
+            polygon += xbl;
+            edge.setPoints(tl, xtl);
+        }
+    }
+}
+
 void OrthogonalRenderer::drawMapObject(QPainter *painter,
                                        const MapObject *object,
                                        const MapObjectColors &colors) const
@@ -404,13 +458,33 @@ void OrthogonalRenderer::drawMapObject(QPainter *painter,
             if (bounds.isNull())
                 bounds = QRectF(QPointF(-10, -10), QSizeF(20, 20));
 
-            // Draw the shadow
-            painter->setPen(shadowPen);
-            painter->drawRect(bounds.translated(shadowOffset));
+            auto extrusion = object->extrusion();
+            if (extrusion.isNull()) {
+                // Draw the shadow
+                painter->setPen(shadowPen);
+                painter->drawRect(bounds.translated(shadowOffset));
 
-            painter->setPen(linePen);
-            painter->setBrush(fillBrush);
-            painter->drawRect(bounds);
+                painter->setPen(linePen);
+                painter->setBrush(fillBrush);
+                painter->drawRect(bounds);
+            } else {
+                auto sidePolygon = QPolygonF(6);
+                auto sideEdge = QLineF();
+                buildRectangleExtrusionShapes(sidePolygon, sideEdge, bounds, extrusion);
+
+                bounds.translate(extrusion);
+
+                painter->setPen(shadowPen);
+                painter->drawPolygon(sidePolygon.translated(shadowOffset));
+                painter->drawLine(sideEdge.translated(shadowOffset));
+                painter->drawRect(bounds.translated(shadowOffset));
+
+                painter->setPen(linePen);
+                painter->setBrush(fillBrush);
+                painter->drawPolygon(sidePolygon);
+                painter->drawLine(sideEdge);
+                painter->drawRect(bounds);
+            }
             break;
         }
 
