@@ -36,7 +36,6 @@
 
 #include <QtCore/qmath.h>
 #include <QLine>
-#include <qpolygon.h>
 
 using namespace Tiled;
 
@@ -459,7 +458,11 @@ void OrthogonalRenderer::drawMapObject(QPainter *painter,
             if (bounds.isNull())
                 bounds = QRectF(QPointF(-10, -10), QSizeF(20, 20));
 
-            auto extrusion = object->extrusion();
+            QPointF extrusion (
+                object->resolvedProperty(QString::fromUtf8("extrudeX")).toReal(),
+                object->resolvedProperty(QString::fromUtf8("extrudeY")).toReal()
+            );
+
             if (extrusion.isNull()) {
                 // Draw the shadow
                 painter->setPen(shadowPen);
@@ -498,7 +501,11 @@ void OrthogonalRenderer::drawMapObject(QPainter *painter,
             thickShadowPen.setWidthF(thickShadowPen.widthF() * 4);
             thickLinePen.setWidthF(thickLinePen.widthF() * 4);
 
-            QPointF extrusion = object->extrusion();
+            QPointF extrusion (
+                object->resolvedProperty(QString::fromUtf8("extrudeX")).toReal(),
+                object->resolvedProperty(QString::fromUtf8("extrudeY")).toReal()
+            );
+
             if (extrusion.isNull()) {
                 const QPointF pointPos = screenPolygon.isEmpty()
                                         ? QPointF()
