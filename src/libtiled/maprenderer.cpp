@@ -333,7 +333,7 @@ QPolygonF MapRenderer::lineToPolygon(const QPointF &start, const QPointF &end)
 void MapRenderer::drawExtrudedPolygon(
     QPainter *painter,
     const QPen & pen,
-    const QPen & thickPen,
+    const QBrush & brush,
     const QPolygonF & screenPolygon,
     const QPointF & extrusion,
     const QPointF & offset) const
@@ -345,12 +345,13 @@ void MapRenderer::drawExtrudedPolygon(
     QPolygonF sidePoly(4);
     QPointF extrudedOffset = offset + extrusion;
 
-    painter->setPen(pen);
-    if (closed)
-        painter->drawPolygon(screenPolygon.translated(offset));
-    else
-        painter->drawPolyline(screenPolygon.translated(offset));
-    
+    QPen darkPen(pen);
+    darkPen.setColor(pen.color().darker());
+    QBrush darkBrush(brush);
+    darkBrush.setColor(brush.color().darker());
+    painter->setPen(darkPen);
+    painter->setBrush(darkBrush);
+
     QPointF pointA = screenPolygon.first();
     for (int i = 1; i < screenPolygon.size(); ++i) {
         auto pointB = screenPolygon[i];
@@ -371,14 +372,18 @@ void MapRenderer::drawExtrudedPolygon(
         painter->drawConvexPolygon(sidePoly);
     }
 
+    painter->setPen(pen);
+    painter->setBrush(brush);
+
     if (closed)
         painter->drawPolygon(screenPolygon.translated(extrudedOffset));
     else
         painter->drawPolyline(screenPolygon.translated(extrudedOffset));
 
+    QPen thickPen(pen);
+    thickPen.setWidthF(pen.widthF() * 4);
     painter->setPen(thickPen);
     painter->drawPoint(pointPos + offset);
-    painter->drawPoint(pointPos + extrudedOffset);
 }
 
 /**

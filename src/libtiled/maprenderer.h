@@ -186,7 +186,7 @@ public:
 
     void drawExtrudedPolygon(QPainter *painter,
                              const QPen & pen,
-                             const QPen & thickPen,
+                             const QBrush & brush,
                              const QPolygonF & screenPolygon,
                              const QPointF & extrusion,
                              const QPointF & offset = QPointF()) const;

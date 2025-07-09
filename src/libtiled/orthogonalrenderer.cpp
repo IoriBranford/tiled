@@ -530,9 +530,8 @@ void OrthogonalRenderer::drawMapObject(QPainter *painter,
             } else {
                 if (shape == MapObject::Polygon && !screenPolygon.isClosed())
                     screenPolygon += screenPolygon.first();
-                drawExtrudedPolygon(painter, shadowPen, thickShadowPen, screenPolygon, extrusion, shadowOffset);
-                painter->setBrush(fillBrush);
-                drawExtrudedPolygon(painter, linePen, thickLinePen, screenPolygon, extrusion);
+                drawExtrudedPolygon(painter, shadowPen, QBrush(Qt::NoBrush), screenPolygon, extrusion, shadowOffset);
+                drawExtrudedPolygon(painter, linePen, fillBrush, screenPolygon, extrusion);
             }
             break;
         }
