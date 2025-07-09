@@ -330,6 +330,57 @@ QPolygonF MapRenderer::lineToPolygon(const QPointF &start, const QPointF &end)
     return polygon;
 }
 
+void MapRenderer::drawExtrudedPolygon(
+    QPainter *painter,
+    const QPen & pen,
+    const QPen & thickPen,
+    const QPolygonF & screenPolygon,
+    const QPointF & extrusion,
+    const QPointF & offset) const
+{
+    const QPointF pointPos = screenPolygon.isEmpty() ? QPointF()
+                                                        : screenPolygon.first();
+    bool closed = screenPolygon.isClosed();
+
+    QPolygonF sidePoly(4);
+    QPointF extrudedOffset = offset + extrusion;
+
+    painter->setPen(pen);
+    if (closed)
+        painter->drawPolygon(screenPolygon.translated(offset));
+    else
+        painter->drawPolyline(screenPolygon.translated(offset));
+    
+    QPointF pointA = screenPolygon.first();
+    for (int i = 1; i < screenPolygon.size(); ++i) {
+        auto pointB = screenPolygon[i];
+        sidePoly[0] = pointA + offset;
+        sidePoly[1] = pointA + extrudedOffset;
+        sidePoly[2] = pointB + extrudedOffset;
+        sidePoly[3] = pointB + offset;
+        painter->drawConvexPolygon(sidePoly);
+        pointA = pointB;
+    }
+
+    if (closed) {
+        auto pointB = screenPolygon.first();
+        sidePoly[0] = pointA + offset;
+        sidePoly[1] = pointA + extrudedOffset;
+        sidePoly[2] = pointB + extrudedOffset;
+        sidePoly[3] = pointB + offset;
+        painter->drawConvexPolygon(sidePoly);
+    }
+
+    if (closed)
+        painter->drawPolygon(screenPolygon.translated(extrudedOffset));
+    else
+        painter->drawPolyline(screenPolygon.translated(extrudedOffset));
+
+    painter->setPen(thickPen);
+    painter->drawPoint(pointPos + offset);
+    painter->drawPoint(pointPos + extrudedOffset);
+}
+
 /**
  * Returns a MapRenderer instance matching the orientation of the map.
  */
