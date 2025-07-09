@@ -385,11 +385,6 @@ void buildRectangleExtrusionShapes(QPolygonF & polygon,
     }
 }
 
-void buildPolygonExtrusionShapes()
-{
-
-}
-
 void OrthogonalRenderer::drawMapObject(QPainter *painter,
                                        const MapObject *object,
                                        const MapObjectColors &colors) const
@@ -496,9 +491,7 @@ void OrthogonalRenderer::drawMapObject(QPainter *painter,
 
         case MapObject::Polygon:
         case MapObject::Polyline: {
-            const QPolygonF screenPolygon = pixelToScreenCoords(object->polygon());
-            const QPointF pointPos = screenPolygon.isEmpty() ? QPointF()
-                                                             : screenPolygon.first();
+            QPolygonF screenPolygon = pixelToScreenCoords(object->polygon());
 
             QPen thickShadowPen(shadowPen);
             QPen thickLinePen(linePen);
@@ -507,6 +500,10 @@ void OrthogonalRenderer::drawMapObject(QPainter *painter,
 
             QPointF extrusion = object->extrusion();
             if (extrusion.isNull()) {
+                const QPointF pointPos = screenPolygon.isEmpty()
+                                        ? QPointF()
+                                        : screenPolygon.first();
+
                 painter->setPen(shadowPen);
                 if (shape == MapObject::Polygon)
                     painter->drawPolygon(screenPolygon.translated(shadowOffset));
@@ -524,81 +521,11 @@ void OrthogonalRenderer::drawMapObject(QPainter *painter,
                 painter->setPen(thickLinePen);
                 painter->drawPoint(pointPos);
             } else {
-                QPolygonF sidePoly(4);
-                auto extrudedShadowOffset = shadowOffset + extrusion;
-
-                painter->setPen(shadowPen);
-                if (shape == MapObject::Polygon)
-                    painter->drawPolygon(screenPolygon.translated(shadowOffset));
-                else
-                    painter->drawPolyline(screenPolygon.translated(shadowOffset));
-                
-                QPointF pointA = screenPolygon.first();
-                for (int i = 1; i < screenPolygon.size(); ++i) {
-                    auto pointB = screenPolygon[i];
-                    sidePoly[0] = pointA + shadowOffset;
-                    sidePoly[1] = pointA + extrudedShadowOffset;
-                    sidePoly[2] = pointB + extrudedShadowOffset;
-                    sidePoly[3] = pointB + shadowOffset;
-                    painter->drawConvexPolygon(sidePoly);
-                    pointA = pointB;
-                }
-
-                if (shape == MapObject::Polygon) {
-                    auto pointB = screenPolygon.first();
-                    sidePoly[0] = pointA + shadowOffset;
-                    sidePoly[1] = pointA + extrudedShadowOffset;
-                    sidePoly[2] = pointB + extrudedShadowOffset;
-                    sidePoly[3] = pointB + shadowOffset;
-                    painter->drawConvexPolygon(sidePoly);
-                }
-
-                if (shape == MapObject::Polygon)
-                    painter->drawPolygon(screenPolygon.translated(extrudedShadowOffset));
-                else
-                    painter->drawPolyline(screenPolygon.translated(extrudedShadowOffset));
-
-                painter->setPen(thickShadowPen);
-                painter->drawPoint(pointPos + shadowOffset);
-                painter->drawPoint(pointPos + extrudedShadowOffset);
-
-                painter->setPen(linePen);
+                if (shape == MapObject::Polygon && !screenPolygon.isClosed())
+                    screenPolygon += screenPolygon.first();
+                drawExtrudedPolygon(painter, shadowPen, thickShadowPen, screenPolygon, extrusion, shadowOffset);
                 painter->setBrush(fillBrush);
-                if (shape == MapObject::Polygon)
-                    painter->drawPolygon(screenPolygon);
-                else
-                    painter->drawPolyline(screenPolygon);
-                painter->setPen(thickLinePen);
-                painter->drawPoint(pointPos);
-
-                painter->setPen(linePen);
-                painter->setBrush(fillBrush);
-                pointA = screenPolygon.first();
-                for (int i = 1; i < screenPolygon.size(); ++i) {
-                    auto pointB = screenPolygon[i];
-                    sidePoly[0] = pointA;
-                    sidePoly[1] = pointA + extrusion;
-                    sidePoly[2] = pointB + extrusion;
-                    sidePoly[3] = pointB;
-                    painter->drawConvexPolygon(sidePoly);
-                    pointA = pointB;
-                }
-
-                if (shape == MapObject::Polygon) {
-                    auto pointB = screenPolygon.first();
-                    sidePoly[0] = pointA;
-                    sidePoly[1] = pointA + extrusion;
-                    sidePoly[2] = pointB + extrusion;
-                    sidePoly[3] = pointB;
-                    painter->drawConvexPolygon(sidePoly);
-                }
-
-                if (shape == MapObject::Polygon)
-                    painter->drawPolygon(screenPolygon.translated(extrusion));
-                else
-                    painter->drawPolyline(screenPolygon.translated(extrusion));
-                painter->setPen(thickLinePen);
-                painter->drawPoint(pointPos + extrusion);
+                drawExtrudedPolygon(painter, linePen, thickLinePen, screenPolygon, extrusion);
             }
             break;
         }
