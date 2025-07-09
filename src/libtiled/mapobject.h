@@ -160,13 +160,6 @@ public:
     void setSize(const QSizeF &size);
     void setSize(qreal width, qreal height);
 
-    const QPointF &extrusion() const;
-    void setExtrusion(const QPointF &extrusion);
-    void setExtrusion(qreal extrudeX, qreal extrudeY);
-
-    bool isExtrudedBackwards() const;
-    void setExtrudedBackwards(bool extrudedBackwards);
-
     qreal width() const;
     void setWidth(qreal width);
 
@@ -248,8 +241,6 @@ private:
     QString mName;
     QPointF mPos;
     QSizeF mSize;
-    QPointF mExtrusion;
-    bool mExtrudedBackwards = false;
     TextData mTextData;
     QPolygonF mPolygon;
     Cell mCell;
@@ -344,27 +335,6 @@ inline void MapObject::setSize(const QSizeF &size)
 
 inline void MapObject::setSize(qreal width, qreal height)
 { setSize(QSizeF(width, height)); }
-
-/**
- * Returns the extrusion of this object.
- */
-inline const QPointF &MapObject::extrusion() const
-{ return mExtrusion; }
-
-/**
- * Sets the extrusion of this object.
- */
-inline void MapObject::setExtrusion(const QPointF &extrusion)
-{ mExtrusion = extrusion; }
-
-inline void MapObject::setExtrusion(qreal extrudeX, qreal extrudeY)
-{ setExtrusion(QPointF(extrudeX, extrudeY)); }
-
-inline bool MapObject::isExtrudedBackwards() const
-{ return mExtrudedBackwards; }
-
-inline void MapObject::setExtrudedBackwards(bool extrudedBackwards)
-{ mExtrudedBackwards = extrudedBackwards; }
 
 /**
  * Returns the width of this object.
