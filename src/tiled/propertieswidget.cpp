@@ -2208,7 +2208,7 @@ PropertiesWidget::PropertiesWidget(QWidget *parent)
     , mRemoveIcon(QIcon(QStringLiteral(":/images/16/remove.png")))
     , mAddIcon(QIcon(QStringLiteral(":/images/16/add.png")))
     , mRenameIcon(QIcon(QLatin1String(":/images/16/rename.png")))
-    , mRootProperty(new GroupProperty())
+    , mRootProperty(new GroupProperty(this))
     , mCustomProperties(new CustomProperties(mRootProperty))
     , mPropertiesView(new PropertiesView(this))
 {
@@ -2228,16 +2228,22 @@ PropertiesWidget::PropertiesWidget(QWidget *parent)
     mActionRemoveProperty->setEnabled(false);
     mActionRemoveProperty->setIcon(mRemoveIcon);
     mActionRemoveProperty->setShortcuts(QKeySequence::Delete);
+    mActionRemoveProperty->setShortcutContext(Qt::WidgetWithChildrenShortcut);
     mActionRemoveProperty->setPriority(QAction::LowPriority);
     connect(mActionRemoveProperty, &QAction::triggered,
             this, &PropertiesWidget::removeProperties);
+    addAction(mActionRemoveProperty);
 
     mActionRenameProperty = new QAction(this);
     mActionRenameProperty->setEnabled(false);
     mActionRenameProperty->setIcon(mRenameIcon);
     mActionRenameProperty->setPriority(QAction::LowPriority);
+    mActionRenameProperty->setShortcut(Qt::Key_F2);
+    mActionRenameProperty->setShortcutContext(Qt::WidgetWithChildrenShortcut);
+    ActionManager::registerAction(mActionRenameProperty, "RenameProperty");
     connect(mActionRenameProperty, &QAction::triggered,
             this, &PropertiesWidget::renameSelectedProperty);
+    addAction(mActionRenameProperty);
 
     Utils::setThemeIcon(mActionAddProperty, "add");
     Utils::setThemeIcon(mActionRemoveProperty, "remove");
