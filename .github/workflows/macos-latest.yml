@@ -2,12 +2,15 @@ name: Compile on latest macOS (Homebrew)
 
 on:
   push:
+    branches:
+      - master
+    tags:
+      - '*'
     paths-ignore:
     - 'docs/**'
     - '**.md'
     - 'appveyor.yml'
     - '.travis.yml'
-    branches-ignore: [snapshot]
   pull_request:
     paths-ignore:
     - 'docs/**'
@@ -26,7 +29,8 @@ jobs:
 
     - name: Install dependencies
       run: |
-        brew install qbs
+        brew update
+        brew install qbs qttools
 
     - name: Setup Qbs
       run: |
