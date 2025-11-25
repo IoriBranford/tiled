@@ -5,11 +5,17 @@
 * Allow filtering tilesets by name in the tileset dock (with dogboydog, #4239)
 * Allow changing the values of number inputs using expressions (with dogboydog, #4234)
 * Added support for SVG 1.2 / CSS blending modes to layers (#3932)
+* Added support for natural sorting of project files (by Edgar Jr. San Martin, #4284)
 * Added button to toggle Terrain Brush to full tile mode (by Finlay Pearson, #3407)
 * Added square selection and expand-from-center to Rectangular Select tool (#4201)
 * Added status info for various Stamp Brush, Terrain Brush and Eraser modes (#3092, #4201)
 * Added Escape to clear tile selection when any tile related tool is selected (#4243)
 * Added Escape to cancel tile selection and shape drawing operations
+* Made the shortcut for current tool switch to previous tool (#4280)
+* Allow canceling Select Same Tile, Magic Wand and Bucket Fill operations with right-click and Escape
+* Allow dragging over multiple tiles with Select Same Tile, Magic Wand and Bucket Fill tools (#4276)
+* Don't switch to Edit Polygons tool on double-click with Alt pressed
+* Adjust world map position when resizing a map with offset (#4270)
 * Added export plugin for Remixed Dungeon (by Mikhael Danilov, #4158)
 * Added "World > World Properties" menu action (with dogboydog, #4190)
 * Added Delete shortcut to Remove Tiles action by default and avoid ambiguity (#4201)
@@ -18,6 +24,7 @@
 * AutoMapping: Don't match rules based on empty input indexes
 * AutoMapping: Optimized reloading of rule maps and load rule maps on-demand
 * Windows: Fixed issue with opening Tile Animation Editor (#4223)
+* macOS: Fixed crash when JS code is JIT-compiled (#4218)
 * Workaround tileset view layout regression in Qt 6.9
 * Raised minimum supported Qt version from 5.12 to 5.15.2
 
