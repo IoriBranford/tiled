@@ -421,6 +421,14 @@ void OrthogonalRenderer::drawMapObject(QPainter *painter,
                 object->resolvedProperty(QString::fromUtf8("extrudeX")).toReal(&ok),
                 object->resolvedProperty(QString::fromUtf8("extrudeY")).toReal(&ok)
             );
+            QVariant extrudeProperty = object->resolvedProperty(QString::fromUtf8("extrude"));
+            if (extrudeProperty.userType() == QMetaType::QVariantList) {
+                QList list = extrudeProperty.value<QVariantList>();
+                if (list.size() >= 1)
+                    extrusion.setX(list[0].toReal(&ok));
+                if (list.size() >= 2)
+                    extrusion.setY(list[1].toReal(&ok));
+            }
 
             if (extrusion.isNull()) {
                 // Draw the shadow
