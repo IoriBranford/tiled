@@ -416,9 +416,10 @@ void OrthogonalRenderer::drawMapObject(QPainter *painter,
             if (bounds.isNull())
                 bounds = QRectF(QPointF(-10, -10), QSizeF(20, 20));
 
+            bool ok;
             QPointF extrusion (
-                object->resolvedProperty(QString::fromUtf8("extrudeX")).toReal(),
-                object->resolvedProperty(QString::fromUtf8("extrudeY")).toReal()
+                object->resolvedProperty(QString::fromUtf8("extrudeX")).toReal(&ok),
+                object->resolvedProperty(QString::fromUtf8("extrudeY")).toReal(&ok)
             );
 
             if (extrusion.isNull()) {
