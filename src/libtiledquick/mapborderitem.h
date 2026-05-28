@@ -1,8 +1,8 @@
 /*
- * filechangedwarning.h
- * Copyright 2016, Thorbjørn Lindeijer <bjorn@lindijer.nl>
+ * mapborderitem.h
+ * Copyright 2026, UltraDagon
  *
- * This file is part of Tiled.
+ * This file is part of Tiled Quick.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -20,33 +20,32 @@
 
 #pragma once
 
-#include <QWidget>
+#include <QQuickItem>
 
-class QLabel;
-class QDialogButtonBox;
+#include "tiledquick_global.h"
 
-namespace Tiled {
+namespace TiledQuick {
 
-class FileChangedWarning : public QWidget
+class TILEDQUICK_SHARED_EXPORT MapBorderItem : public QQuickItem
 {
     Q_OBJECT
 
+    Q_PROPERTY(QColor color READ color WRITE setColor NOTIFY colorChanged)
+
 public:
-    explicit FileChangedWarning(QWidget *parent = nullptr);
+    explicit MapBorderItem(QQuickItem *parent = nullptr);
+    ~MapBorderItem() override;
+
+    QSGNode *updatePaintNode(QSGNode *node, QQuickItem::UpdatePaintNodeData *) override;
+
+    QColor color() const;
+    void setColor(const QColor &color);
 
 signals:
-    void reload();
-    void ignore();
-
-protected:
-    void changeEvent(QEvent *event) override;
-    void paintEvent(QPaintEvent *event) override;
+    void colorChanged();
 
 private:
-    void retranslateUi();
-
-    QLabel *mLabel;
-    QDialogButtonBox *mButtons;
+    QColor mColor = Qt::black;
 };
 
-} // namespace Tiled
+} // namespace TiledQuick
