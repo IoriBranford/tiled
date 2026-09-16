@@ -91,10 +91,14 @@ protected:
      */
     void updateEnabledState() override;
 
+    void mapDocumentChanged(MapDocument *oldDocument,
+                            MapDocument *newDocument) override;
+
     MapDocument *mapAt(const QPointF &pos) const;
 
     void addAnotherMapToWorldAtCenter();
     void addAnotherMapToWorld(QPoint insertPos);
+    void createWorldForCurrentMap();
     void removeCurrentMapFromWorld();
     void removeFromWorld(WorldDocument *worldDocument, const QString &mapFileName);
     void addToWorld(WorldDocument *worldDocument);
@@ -108,9 +112,8 @@ protected:
     void setSelectionScreenRect(const QRect &rect);
     int resizeHandleNear(const QPointF &scenePos, MapDocument *&mapDocument) const;
 
-    void recenterView(const QPoint &offset);
-
     bool mapCanBeMoved(MapDocument *mapDocument) const;
+    bool mapCanBeResized(MapDocument *mapDocument) const;
     QRect mapRect(MapDocument *mapDocument) const;
     WorldDocument *worldForMap(MapDocument *mapDocument) const;
 
@@ -123,6 +126,7 @@ private:
 
     MapDocument *mTargetMap = nullptr;
 
+    QAction *mNewWorldForMapAction;
     QAction *mAddAnotherMapToWorldAction;
     QAction *mAddMapToWorldAction;
     QAction *mRemoveMapFromWorldAction;

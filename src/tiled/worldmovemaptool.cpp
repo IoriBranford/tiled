@@ -104,8 +104,10 @@ void WorldMoveMapTool::keyPressed(QKeyEvent *event)
         return;
     }
     MapDocument *document = mapDocument();
-    if (!document || !mapCanBeMoved(document) || mDraggingMap)
+    if (!document || !mapCanBeMoved(document) || mDraggingMap) {
+        event->ignore();    // allow the view to scroll instead
         return;
+    }
 
     const bool moveFast = modifiers & Qt::ShiftModifier;
     if (moveFast)
@@ -139,19 +141,13 @@ void WorldMoveMapTool::moveMap(MapDocument *document, QPoint moveBy)
 
     auto undoStack = worldDocument->undoStack();
     undoStack->push(new SetMapRectCommand(worldDocument, document->fileName(), rect));
-
-    if (document == mapDocument()) {
-        // undo camera movement, by the actual snapped offset
-        recenterView(rect.topLeft() - prevRect.topLeft());
-    }
 }
 
 void WorldMoveMapTool::updateResizingMap(const QPointF &pos,
                                          Qt::KeyboardModifiers modifiers)
 {
     const Map *map = mResizingMap->map();
-    const int tileWidth = map->tileWidth();
-    const int tileHeight = map->tileHeight();
+    const MapRenderer *renderer = mResizingMap->renderer();
     const QSize step = snapSize(mResizingMap);
     const HandleEdges edges = handleEdges[mResizeHandle];
 
@@ -163,37 +159,48 @@ void WorldMoveMapTool::updateResizingMap(const QPointF &pos,
     const QPoint delta = (pos - mDragStartScenePos).toPoint();
     const bool snapToGrid = !(modifiers & Qt::ControlModifier);
 
-    const auto snap = [&](int value, int gridStep) {
-        return (snapToGrid && gridStep > 0) ? qRound(qreal(value) / gridStep) * gridStep
-                                            : value;
+    // snap the drag rather than the resulting edge, since the bounds of a
+    // staggered or hexagonal map don't line up with the grid and the edge
+    // would otherwise jump as soon as a handle is grabbed
+    const auto snap = [&](int amount, int gridStep) {
+        return (snapToGrid && gridStep > 0) ? qRound(qreal(amount) / gridStep) * gridStep
+                                            : amount;
     };
 
     if (edges.left)
-        left = snap(left + delta.x(), step.width());
+        left += snap(delta.x(), step.width());
     if (edges.right)
-        right = snap(right + delta.x(), step.width());
+        right += snap(delta.x(), step.width());
     if (edges.top)
-        top = snap(top + delta.y(), step.height());
+        top += snap(delta.y(), step.height());
     if (edges.bottom)
-        bottom = snap(bottom + delta.y(), step.height());
+        bottom += snap(delta.y(), step.height());
 
-    // a map is always a whole number of tiles, so round to the nearest tile
-    const int newWidth = qMax(1, qRound(qreal(right - left) / tileWidth));
-    const int newHeight = qMax(1, qRound(qreal(bottom - top) / tileHeight));
+    // ask the renderer what one more column or row adds on screen, since that
+    // is only the tile size for orthogonal maps
+    const QSize mapSize = map->size();
+    const QRect mapRect = renderer->boundingRect(QRect(QPoint(), mapSize));
+    const QRect oneMoreColumn = renderer->boundingRect(QRect(QPoint(), mapSize + QSize(1, 0)));
+    const QRect oneMoreRow = renderer->boundingRect(QRect(QPoint(), mapSize + QSize(0, 1)));
+    const int columnPixels = qMax(1, oneMoreColumn.width() - mapRect.width());
+    const int rowPixels = qMax(1, oneMoreRow.height() - mapRect.height());
+
+    // count from the size we started at, so grabbing a handle without dragging
+    // leaves the map as it is
+    const int widthDragged = right - left - mResizeStartWorldRect.width();
+    const int heightDragged = bottom - top - mResizeStartWorldRect.height();
+    const int newWidth = qMax(1, mapSize.width() + qRound(qreal(widthDragged) / columnPixels));
+    const int newHeight = qMax(1, mapSize.height() + qRound(qreal(heightDragged) / rowPixels));
 
     // the content only shifts when the left or top edge is the one being moved
-    mResizeOffset = QPoint(edges.left ? newWidth - map->width() : 0,
-                           edges.top ? newHeight - map->height() : 0);
+    mResizeOffset = QPoint(edges.left ? newWidth - mapSize.width() : 0,
+                           edges.top ? newHeight - mapSize.height() : 0);
     mResizeNewSize = QSize(newWidth, newHeight);
 
-    // preview the result, matching what resizeMap() will produce, using the
-    // renderer so the size is correct for isometric and other orientations
-    const MapRenderer *renderer = mResizingMap->renderer();
-    const QPointF pixelOffset = renderer->tileToPixelCoords(QPointF())
-                              - renderer->tileToPixelCoords(-mResizeOffset);
-    const QPoint topLeft = mResizeStartWorldRect.topLeft() - pixelOffset.toPoint();
-    const QSize previewSize = renderer->boundingRect(QRect(QPoint(), mResizeNewSize)).size();
-    setSelectionScreenRect(QRect(topLeft, previewSize).translated(mResizeSceneOffset));
+    // preview the result, positioned the way resizeMap() will position it
+    const QRect newBounds = renderer->boundingRect(QRect(-mResizeOffset, mResizeNewSize));
+    const QPoint topLeft = mResizeStartWorldRect.topLeft() + newBounds.topLeft() - mapRect.topLeft();
+    setSelectionScreenRect(QRect(topLeft, newBounds.size()).translated(mResizeSceneOffset));
 
     setStatusInfo(tr("Resize map to %1 x %2").arg(newWidth).arg(newHeight));
 }
@@ -210,7 +217,7 @@ void WorldMoveMapTool::mousePressed(QGraphicsSceneMouseEvent *event)
     if (event->button() == Qt::LeftButton) {
         MapDocument *map = nullptr;
         const int handle = resizeHandleNear(event->scenePos(), map);
-        if (handle != -1 && mapCanBeMoved(map)) {
+        if (handle != -1 && mapCanBeResized(map)) {
             startResizing(map, handle, event->scenePos());
             return;
         }
@@ -231,8 +238,11 @@ void WorldMoveMapTool::startResizing(MapDocument *map, int handle,
     mResizeHandle = handle;
     mDragStartScenePos = scenePos;
 
-    auto world = worldForMap(mResizingMap)->world();
-    const QPoint worldPos = world->mapRect(mResizingMap->fileName()).topLeft();
+    // For maps that are not in a world the position is just 0,0
+    QPoint worldPos;
+    if (auto worldDocument = worldForMap(mResizingMap))
+        worldPos = worldDocument->world()->mapRect(mResizingMap->fileName()).topLeft();
+
     const QSize sizePixels = mResizingMap->renderer()->mapBoundingRect().size();
     mResizeStartWorldRect = QRect(worldPos, sizePixels);
     mResizeSceneOffset = mapScene()->mapItem(mResizingMap)->pos().toPoint() - worldPos;
@@ -263,7 +273,7 @@ void WorldMoveMapTool::mouseMoved(const QPointF &pos,
         // target the map whose handle is under the cursor, else hover normally
         MapDocument *map = nullptr;
         const int hoveredHandle = resizeHandleNear(pos, map);
-        if (hoveredHandle != -1 && mapCanBeMoved(map))
+        if (hoveredHandle != -1 && mapCanBeResized(map))
             setTargetMap(map);
         else
             AbstractWorldTool::mouseMoved(pos, modifiers);
@@ -321,18 +331,8 @@ void WorldMoveMapTool::finishResizing()
     auto resizedMap = std::exchange(mResizingMap, nullptr);
     mResizeHandle = -1;
 
-    if (mResizeNewSize != resizedMap->map()->size() || !mResizeOffset.isNull()) {
-        const QPoint prevPos = mResizeStartWorldRect.topLeft();
+    if (mResizeNewSize != resizedMap->map()->size() || !mResizeOffset.isNull())
         resizedMap->resizeMap(mResizeNewSize, mResizeOffset, false);
-
-        // keep the view steady when the active map's position shifted
-        if (resizedMap == mapDocument()) {
-            if (auto worldDocument = worldForMap(resizedMap)) {
-                const QPoint newPos = worldDocument->world()->mapRect(resizedMap->fileName()).topLeft();
-                recenterView(newPos - prevPos);
-            }
-        }
-    }
 
     updateSelectionRectangle();
     refreshCursor();
@@ -357,11 +357,6 @@ void WorldMoveMapTool::finishMoving()
 
             auto undoStack = worldDocument->undoStack();
             undoStack->push(new SetMapRectCommand(worldDocument, draggedMap->fileName(), rect));
-
-            if (draggedMap == mapDocument()) {
-                // undo camera movement
-                view->forceCenterOn(view->viewCenter() - mDragOffset);
-            }
         }
     } else {
         // switch to the document
