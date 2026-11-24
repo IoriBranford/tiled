@@ -28,7 +28,7 @@ jobs:
       uses: actions/checkout@v7
 
     - name: Setup ccache
-      uses: hendrikmuhs/ccache-action@v1.2.24
+      uses: hendrikmuhs/ccache-action@v1.2.25
       with:
         key: ccache-ubuntu
         max-size: 250M
@@ -48,3 +48,7 @@ jobs:
     - name: Build
       run: |
         qbs build modules.cpp.compilerWrapper:ccache
+
+    - name: Test
+      run: |
+        qbs build -p autotest-runner modules.cpp.compilerWrapper:ccache
